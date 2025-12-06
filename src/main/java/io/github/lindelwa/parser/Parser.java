@@ -17,7 +17,7 @@ public class Parser {
     private String currentCommand = "";
     private final Map<String, Integer> symbolTable = new HashMap<>();
 
-    public enum Command {
+    private enum Command {
         A_COMMAND, C_COMMAND, L_COMMAND;
     }
 
@@ -78,7 +78,7 @@ public class Parser {
         this.programCounter = 0;
     }
 
-    public void parse(String filePath) throws SyntaxException, CommandException {
+    private void buildSymbolTable() throws SyntaxException, CommandException {
         // FIRST PASS: Go through the entire program and build the symbol
         // table without generating any code.
         int romAddress = 0;
@@ -94,12 +94,12 @@ public class Parser {
 
             else if (commandType == Command.L_COMMAND) {
                 String label = symbol();
-                this.symbolTable.put(label, romAddress+1);
+                this.symbolTable.put(label, romAddress);
             }
         }
+    }
 
-        this.reset();
-
+    private void translate(String filePath) throws SyntaxException, CommandException {
         // SECOND PASS: Now go again through the entire program, and parse
         // each line. Each time a symbolic A-instruction is encountered,
         // namely, @Xxx where Xxx is a symbol and not a number, look up
@@ -128,7 +128,7 @@ public class Parser {
                     }
 
                     else if (!this.isStringNumeric(symbol)) {
-                        symbol = Integer.toString(ramAddress);
+                        symbol = Integer.toString(this.symbolTable.get(symbol));
                     }
 
                     // Convert symbol (numeric) to binary string and write to output
@@ -150,8 +150,17 @@ public class Parser {
                     String binaryString = "111" + compBin + destBin + jumpBin;
                     this.writeOutput(filePath, binaryString);
                 }
+
+                case L_COMMAND -> {}
+                case null -> {}
             }
         }
+    }
+
+    public void parse(String filePath) throws SyntaxException, CommandException {
+        this.buildSymbolTable();
+        this.reset();
+        this.translate(filePath);
     }
 
     private boolean isStringNumeric(String s) {
@@ -165,10 +174,10 @@ public class Parser {
     }
 
     /**
-     * Returns true if there any more command to execute, otherwise false.
+     * Returns true if there is any more command to execute, otherwise false.
      * @return boolean
      */
-    public boolean hasMoreCommands() {
+    private boolean hasMoreCommands() {
         return this.programCounter < program.size();
     }
 
@@ -177,7 +186,7 @@ public class Parser {
      * command. Should be called only if hasMoreCommands() is true.
      * Initially, there's no current command.
      */
-    public void advance() {
+    private void advance() {
         this.currentCommand = this.program.get(this.programCounter).trim();
         this.programCounter++;
     }
@@ -192,7 +201,7 @@ public class Parser {
      * @return Command
      * @throws SyntaxException
      */
-    public Command commandType() throws SyntaxException {
+    private Command commandType() throws SyntaxException {
         // A instructions always start with the @ symbol
         if (this.currentCommand.startsWith("@")) {
             return Command.A_COMMAND;
@@ -205,6 +214,12 @@ public class Parser {
             return Command.L_COMMAND;
         }
 
+        // Comment starts with double forward backslashes (//)
+        if (this.currentCommand.startsWith("//")) return null;
+
+        // Ignore empty lines
+        if (this.currentCommand.isEmpty()) return null;
+
         // C instructions always contain either a semicolon (;)
         // or an equal sign (=)
         if (this.currentCommand.contains(";")
@@ -213,11 +228,8 @@ public class Parser {
             return Command.C_COMMAND;
         }
 
-        // Comment starts with double forward backslashes (//)
-        if (this.currentCommand.startsWith("//")) return null;
-
         throw new SyntaxException(
-                this.constructErrorMsg("instruction not recognized")
+                this.constructErrorMsg("instruction not recognized (" + this.currentCommand + ")")
         );
     }
 
@@ -226,7 +238,7 @@ public class Parser {
      * or (Xxx). Should be called only when commandType is A_COMMAND or
      * L_COMMAND
      */
-    public String symbol() throws SyntaxException, CommandException {
+    private String symbol() throws SyntaxException, CommandException {
         Command commandType = this.commandType();
 
         if (commandType.equals(Command.A_COMMAND)) {
@@ -252,7 +264,7 @@ public class Parser {
      * Returns the dest mnemonic in current C_COMMAND (8 possibilities).
      * Should only be called when commandType() is C_COMMAND
      */
-    public String dest() throws SyntaxException {
+    private String dest() throws SyntaxException {
         if (!this.currentCommand.contains("=")) return null;
 
         String mnemonic = this.currentCommand.split("=")[0].trim();
@@ -280,7 +292,7 @@ public class Parser {
      * (28 possibilities). Should be called only when commandType() is
      * C_COMMAND.
      */
-    public String comp() throws SyntaxException {
+    private String comp() throws SyntaxException {
         String mnemonic;
         if (this.currentCommand.contains("=")) {
             mnemonic = this.currentCommand.split("=")[1].trim();
@@ -315,7 +327,7 @@ public class Parser {
      * Returns the jump mnemonic in the current C_COMMAND
      * (8 possibilities). Should be called when commandType() is C_COMMAND.
      */
-    public String jump() throws SyntaxException {
+    private String jump() throws SyntaxException {
         if (!this.currentCommand.contains(";")) return null;
 
         String mnemonic = this.currentCommand.split(";")[1].trim();

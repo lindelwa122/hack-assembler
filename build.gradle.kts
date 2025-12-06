@@ -1,9 +1,14 @@
 plugins {
     id("java")
+    application
 }
 
 group = "io.github.lindelwa"
 version = "1.0-SNAPSHOT"
+
+application {
+    mainClass = "io.github.lindelwa.Main"
+}
 
 repositories {
     mavenCentral()

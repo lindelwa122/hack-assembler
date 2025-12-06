@@ -1,17 +1,38 @@
 package io.github.lindelwa;
 
+import io.github.lindelwa.exceptions.CommandException;
+import io.github.lindelwa.exceptions.SyntaxException;
+import io.github.lindelwa.parser.Parser;
+
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!\n");
+    public static void main(String [] args) throws SyntaxException, CommandException {
+        if (args == null || args.length < 2) {
+            System.out.println("Both the input filepath and output are required");
+            System.exit(1);
+        }
 
-        for (int i = -1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + Integer.toBinaryString(i) + " " + i);
+        String resourcePath = args[0];
+
+        URL url = Main.class.getResource(resourcePath);
+        System.out.println(url);
+        if (url != null) {
+            try {
+                Path path = Paths.get(url.toURI());
+                System.out.println("Resource Path: " + path.toString());
+                Parser parser = new Parser(path.toString());
+                parser.parse(args[1]);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Resource not found: " + resourcePath);
         }
     }
 }

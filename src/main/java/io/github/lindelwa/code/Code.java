@@ -14,6 +14,8 @@ public class Code {
      * @return binary code of the dest mnemonic
      */
     public static String dest(String mnemonic) {
+        if (mnemonic == null) return "000";
+
         Map<String, String> mnemonicsBinaryPairs = Map.of(
                 "M", "001",
                 "D", "010",
@@ -33,6 +35,8 @@ public class Code {
      * @return the binary code of the jump mnemonic
      */
     public static String jump(String mnemonic) {
+        if (mnemonic == null) return "000";
+
         Map<String, String> mnemonicsBinaryPairs = Map.of(
                 "JGT", "001",
                 "JEQ", "010",
@@ -52,6 +56,8 @@ public class Code {
      * @return the binary code of the comp mnemonic
      */
     public static String comp(String mnemonic) {
+        if (mnemonic == null) return "0000000";
+
         Map<String, String> mnemonicsBinaryPairs = new HashMap<>();
 
         mnemonicsBinaryPairs.put("0", "0101010");
